@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const PRODUCT_API_URL = 'http://localhost:3001'
+import { AUTH_API_URL, PRODUCT_API_URL } from '../apiConfig'
 
 function getMediaUrl(value) {
   if (typeof value !== 'string' || !value) return ''
@@ -18,7 +17,7 @@ export default function ProductApproval({ admin, onBack, onSectionChange }) {
   async function loadProducts() {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:3000/admin/products', {
+      const response = await fetch(`${AUTH_API_URL}/admin/products`, {
         headers: { 'x-admin-token': admin.token },
       })
       const data = await response.json()
@@ -33,7 +32,7 @@ export default function ProductApproval({ admin, onBack, onSectionChange }) {
   }
 
   useEffect(() => {
-    fetch('http://localhost:3000/admin/products', {
+    fetch(`${AUTH_API_URL}/admin/products`, {
       headers: { 'x-admin-token': admin.token },
     })
       .then(async (response) => {
@@ -48,7 +47,7 @@ export default function ProductApproval({ admin, onBack, onSectionChange }) {
 
   async function changeProductApproval(id, approved) {
     try {
-      const response = await fetch(`http://localhost:3000/admin/products/${id}/approval`, {
+      const response = await fetch(`${AUTH_API_URL}/admin/products/${id}/approval`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': admin.token },
         body: JSON.stringify({ approved }),
@@ -75,7 +74,7 @@ export default function ProductApproval({ admin, onBack, onSectionChange }) {
     if (!window.confirm(`Delete ${product.product_name || 'this product'} permanently?`)) return
 
     try {
-      const response = await fetch(`http://localhost:3000/admin/products/${product.id}`, {
+      const response = await fetch(`${AUTH_API_URL}/admin/products/${product.id}`, {
         method: 'DELETE',
         headers: { 'x-admin-token': admin.token },
       })
