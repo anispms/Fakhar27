@@ -26,7 +26,7 @@ const client = process.env.DATABASE_URL
       host: process.env.PGHOST || 'localhost',
       user: process.env.PGUSER || 'postgres',
       port: Number(process.env.PGPORT) || 5432,
-      password: process.env.PGPASSWORD || 'REDACTED_LOCAL_DEV_PASSWORD',
+      password: process.env.PGPASSWORD,
       database: process.env.PGDATABASE || 'postgres',
     })
 
