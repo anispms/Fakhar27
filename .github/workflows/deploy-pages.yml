@@ -26,7 +26,8 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: true
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # Public backend URL, not a secret — safe to commit directly.
+          VITE_API_URL: https://fakhar27-backend.onrender.com
       # GitHub Pages serves 404.html for unmatched paths; making it a copy of
       # index.html lets client-side routes like /admin load instead of 404ing.
       - run: cp dist/index.html dist/404.html
