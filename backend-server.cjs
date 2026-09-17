@@ -180,24 +180,31 @@ app.post('/postData', async (req, res) => {
     return res.status(400).json({ error: 'All registration fields are required' })
   }
 
+  // A transaction's statements must all run on the same connection, so we
+  // check one out of the pool for the duration of BEGIN/COMMIT/ROLLBACK
+  // rather than using client.query() (which hands out a random connection
+  // per call and would silently run each statement outside the transaction).
+  const conn = await client.connect()
   try {
-    await client.query('BEGIN')
-    const result = await client.query(
+    await conn.query('BEGIN')
+    const result = await conn.query(
       `INSERT INTO "user" (email, password) VALUES ($1, $2) RETURNING email`,
       [email, password],
     )
-    const vendorResult = await client.query(
+    const vendorResult = await conn.query(
       `INSERT INTO vendor
         (user_email, shop_name, shop_address, mobile_number, product_type, hsn_code, gst_number, registration_year)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [email.trim(), shopName, shopAddress, mobileNumber, productType, hsnCode, gstNumber, registrationYear],
     )
-    await client.query('COMMIT')
+    await conn.query('COMMIT')
     res.status(201).json({ message: 'Vendor registered successfully', user: result.rows[0], vendor: vendorResult.rows[0] })
   } catch (err) {
-    await client.query('ROLLBACK')
+    await conn.query('ROLLBACK')
     res.status(500).json({ error: err.message })
+  } finally {
+    conn.release()
   }
 })
 
@@ -373,16 +380,17 @@ app.delete('/users/:email', requireAdmin, async (req, res) => {
   const email = req.params.email
   const { shopName } = req.body || {}
 
+  const conn = await client.connect()
   try {
-    await client.query('BEGIN')
-    const userResult = await client.query(`SELECT email FROM "user" WHERE LOWER(email) = LOWER($1)`, [email])
+    await conn.query('BEGIN')
+    const userResult = await conn.query(`SELECT email FROM "user" WHERE LOWER(email) = LOWER($1)`, [email])
     if (userResult.rows.length === 0) {
-      await client.query('ROLLBACK')
+      await conn.query('ROLLBACK')
       return res.status(404).json({ error: 'Vendor not found' })
     }
 
-    await client.query(`DELETE FROM public.product WHERE LOWER(user_email) = LOWER($1)`, [email])
-    await client.query(
+    await conn.query(`DELETE FROM public.product WHERE LOWER(user_email) = LOWER($1)`, [email])
+    await conn.query(
       `DELETE FROM vendor
        WHERE id = COALESCE(
          (SELECT candidate.id FROM vendor AS candidate WHERE LOWER(candidate.user_email) = LOWER($1) LIMIT 1),
@@ -398,13 +406,15 @@ app.delete('/users/:email', requireAdmin, async (req, res) => {
        )`,
       [email, shopName || ''],
     )
-    await client.query(`DELETE FROM "user" WHERE LOWER(email) = LOWER($1)`, [email])
+    await conn.query(`DELETE FROM "user" WHERE LOWER(email) = LOWER($1)`, [email])
 
-    await client.query('COMMIT')
+    await conn.query('COMMIT')
     res.json({ message: 'Vendor deleted successfully' })
   } catch (err) {
-    await client.query('ROLLBACK')
+    await conn.query('ROLLBACK')
     res.status(500).json({ error: err.message })
+  } finally {
+    conn.release()
   }
 })
 
