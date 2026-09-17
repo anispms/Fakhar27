@@ -3,7 +3,7 @@
 // Express app on one port, and reads DB config from DATABASE_URL so it
 // works against a hosted Postgres instance. Local dev keeps using the
 // separate server.cjs / vendordatabase.cjs / productdatabase.cjs files.
-const { Client } = require('pg')
+const { Pool } = require('pg')
 const crypto = require('crypto')
 const express = require('express')
 const cors = require('cors')
@@ -17,18 +17,30 @@ const PORT = process.env.PORT || 3000
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
+// A Pool (rather than a single Client) hands out a fresh connection per
+// query and reconnects automatically. Render's free-tier backend cold-starts
+// after idling, and a lone Client's connection doesn't survive that — every
+// query after a cold start would hang or fail until the process was
+// manually restarted. The Pool sidesteps that entirely.
 const client = process.env.DATABASE_URL
-  ? new Client({
+  ? new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
     })
-  : new Client({
+  : new Pool({
       host: process.env.PGHOST || 'localhost',
       user: process.env.PGUSER || 'postgres',
       port: Number(process.env.PGPORT) || 5432,
       password: process.env.PGPASSWORD,
       database: process.env.PGDATABASE || 'postgres',
     })
+
+// A pooled connection can be dropped by the server (e.g. Postgres restart)
+// while sitting idle in the pool. Without this handler, that surfaces as an
+// uncaught 'error' event and crashes the whole process.
+client.on('error', (err) => {
+  console.error('Unexpected error on idle database client:', err.message)
+})
 
 const adminTokens = new Set()
 
@@ -61,8 +73,6 @@ app.use(cors())
 app.use('/product-images', express.static(imageDirectory))
 
 async function startServer() {
-  await client.connect()
-
   await client.query(`
     CREATE TABLE IF NOT EXISTS "user" (
       email VARCHAR(255) PRIMARY KEY,
