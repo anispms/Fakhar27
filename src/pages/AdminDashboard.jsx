@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ProductApproval from './ProductApproval'
+import { AUTH_API_URL } from '../apiConfig'
 
 export default function AdminDashboard({ admin, onLogout }) {
   const [users, setUsers] = useState([])
@@ -10,7 +11,7 @@ export default function AdminDashboard({ admin, onLogout }) {
   const [bannerMessage, setBannerMessage] = useState('')
 
   useEffect(() => {
-    fetch('http://localhost:3000/admin/marketplace-banner', { headers: { 'x-admin-token': admin.token } })
+    fetch(`${AUTH_API_URL}/admin/marketplace-banner`, { headers: { 'x-admin-token': admin.token } })
       .then(async (response) => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Unable to load marketplace banner')
@@ -29,7 +30,7 @@ export default function AdminDashboard({ admin, onLogout }) {
     event.preventDefault()
     setBannerMessage('')
     try {
-      const response = await fetch('http://localhost:3000/admin/marketplace-banner', {
+      const response = await fetch(`${AUTH_API_URL}/admin/marketplace-banner`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': admin.token },
         body: JSON.stringify(banner),
@@ -51,7 +52,7 @@ export default function AdminDashboard({ admin, onLogout }) {
 
   async function loadUsers() {
     try {
-      const response = await fetch('http://localhost:3000/users', {
+      const response = await fetch(`${AUTH_API_URL}/users`, {
         headers: { 'x-admin-token': admin.token },
       })
       const data = await response.json()
@@ -65,7 +66,7 @@ export default function AdminDashboard({ admin, onLogout }) {
 
   async function changeApproval(email, approved) {
     try {
-      const response = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}/approval`, {
+      const response = await fetch(`${AUTH_API_URL}/users/${encodeURIComponent(email)}/approval`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': admin.token },
         body: JSON.stringify({ approved }),
@@ -82,7 +83,7 @@ export default function AdminDashboard({ admin, onLogout }) {
     if (!window.confirm(`Delete ${shopName || 'this vendor'} and all of its products?`)) return
 
     try {
-      const response = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`, {
+      const response = await fetch(`${AUTH_API_URL}/users/${encodeURIComponent(email)}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': admin.token },
         body: JSON.stringify({ shopName }),

@@ -11,11 +11,11 @@ app.use(cors())
 const adminTokens = new Set()
 
 const client = new Client({
-  host: "localhost",
-  user: "postgres",
-  port: 5432,
-  password: "REDACTED_LOCAL_DEV_PASSWORD",
-  database: "postgres"
+  host: process.env.PGHOST || "localhost",
+  user: process.env.PGUSER || "postgres",
+  port: Number(process.env.PGPORT) || 5432,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE || "postgres",
 })
 
 async function startServer() {

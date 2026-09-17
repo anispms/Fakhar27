@@ -8,6 +8,7 @@
     "server": "node server.cjs",
     "server:vendor": "node vendordatabase.cjs",
     "server:products": "node productdatabase.cjs",
+    "start": "node backend-server.cjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

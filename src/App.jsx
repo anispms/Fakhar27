@@ -12,8 +12,7 @@ import VendorAccess from './pages/VendorAccess'
 import CustomerAccess from './pages/CustomerAccess'
 import CustomerRegistration from './pages/CustomerRegistration'
 import ProductDetails from './pages/ProductDetails'
-
-const PRODUCT_API_URL = 'http://localhost:3001'
+import { AUTH_API_URL, PRODUCT_API_URL } from './apiConfig'
 
 function getCachedProductImages(productId) {
   if (!productId || typeof window === 'undefined') return []
@@ -162,7 +161,7 @@ function App() {
 
   async function handleLogin(credentials, requestedMode = loginMode) {
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      const response = await fetch(`${AUTH_API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +191,7 @@ function App() {
 
   async function handleAdminLogin(credentials) {
     try {
-      const response = await fetch('http://localhost:3000/admin/login', {
+      const response = await fetch(`${AUTH_API_URL}/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
@@ -218,7 +217,7 @@ function App() {
 
   async function handleRegistration(registration) {
     try {
-      const response = await fetch('http://localhost:3000/postData', {
+      const response = await fetch(`${AUTH_API_URL}/postData`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +251,7 @@ function App() {
 
   async function handleCustomerRegistration(registration) {
     try {
-      const response = await fetch('http://localhost:3000/customer/register', {
+      const response = await fetch(`${AUTH_API_URL}/customer/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registration),

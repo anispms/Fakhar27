@@ -5,11 +5,11 @@ const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com'
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
 const databaseConfig = {
-  host: 'localhost',
-  user: 'postgres',
-  port: 5432,
-  password: 'REDACTED_LOCAL_DEV_PASSWORD',
-  database: 'postgres',
+  host: process.env.PGHOST || 'localhost',
+  user: process.env.PGUSER || 'postgres',
+  port: Number(process.env.PGPORT) || 5432,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE || 'postgres',
 }
 
 const adminClient = new Client({ ...databaseConfig, database: ADMIN_DATABASE })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import CategoryDrawer, { marketplaceCategories } from './CategoryDrawer'
+import { AUTH_API_URL } from '../apiConfig'
 
 function getDiscountPercentage(product) {
   const price = Number(product.price)
@@ -34,7 +35,7 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
 
   useEffect(() => {
     if (!customerMode) return
-    fetch('http://localhost:3000/marketplace-banner')
+    fetch(`${AUTH_API_URL}/marketplace-banner`)
       .then((response) => response.ok ? response.json() : null)
       .then((data) => setBanner(data))
       .catch(() => setBanner(null))
