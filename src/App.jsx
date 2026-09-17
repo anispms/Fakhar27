@@ -83,7 +83,8 @@ function App() {
   const [loginMode, setLoginMode] = useState('vendor')
   const [admin, setAdmin] = useState(null)
 
-  const isAdminPath = window.location.pathname === '/admin'
+  // Matches /admin locally and /<base>/admin when hosted under a subpath.
+  const isAdminPath = window.location.pathname.replace(/\/+$/, '').endsWith('/admin')
 
   async function loadProducts(email) {
     setProductsLoading(true)
