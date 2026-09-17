@@ -202,6 +202,11 @@ app.post('/postData', async (req, res) => {
     res.status(201).json({ message: 'Vendor registered successfully', user: result.rows[0], vendor: vendorResult.rows[0] })
   } catch (err) {
     await conn.query('ROLLBACK')
+    // An email can only belong to one account, since "user".email is the
+    // primary key — so re-using a buyer's email for a shop lands here.
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'An account with this email already exists. Use a different email, or log in with that account instead.' })
+    }
     res.status(500).json({ error: err.message })
   } finally {
     conn.release()
