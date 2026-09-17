@@ -26,6 +26,10 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: true
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+      # GitHub Pages serves 404.html for unmatched paths; making it a copy of
+      # index.html lets client-side routes like /admin load instead of 404ing.
+      - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
