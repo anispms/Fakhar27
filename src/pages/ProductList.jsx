@@ -244,15 +244,7 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
                 </button>}
                 {product.imageUrls?.length > 0 ? (
                   <button className="product-image-button" type="button" onClick={(event) => { event.stopPropagation(); setFullScreenImage({ src: product.imageUrls[0], alt: product.productName }) }} aria-label={`View ${product.productName} image fullscreen`}>
-                    <img
-                      className="product-thumb"
-                      src={product.imageUrls[0]}
-                      alt={product.productName}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                        event.currentTarget.parentElement.classList.add('image-load-failed')
-                      }}
-                    />
+                    <img className="product-thumb" src={product.imageUrls[0]} alt={product.productName} />
                   </button>
                 ) : (
                   <div className="product-thumb product-thumb-empty">No image</div>

@@ -1893,8 +1893,6 @@ button:disabled {
   .marketplace-root .product-card-tile .product-image-button,
   .marketplace-root .product-card-tile > .product-thumb,
   .marketplace-root .product-card-tile > .product-thumb-empty {
-    display: block;
-    width: 100%;
     height: auto;
     aspect-ratio: 1;
     border-radius: 10px 10px 0 0;
@@ -1902,21 +1900,9 @@ button:disabled {
   }
 
   .marketplace-root .product-card-tile .product-image-button .product-thumb {
-    display: block;
-    width: 100%;
-    height: 100%;
     aspect-ratio: 1;
     border-radius: 10px 10px 0 0;
     object-fit: contain;
-  }
-
-  .marketplace-root .product-card-tile .product-image-button.image-load-failed::after {
-    content: 'Image unavailable';
-    display: grid;
-    height: 100%;
-    place-items: center;
-    color: #7a8580;
-    font-size: 0.75rem;
   }
 
   .marketplace-root .product-card-tile .product-details,
@@ -3326,13 +3312,7 @@ textarea:focus-visible {
   .marketplace-root .product-card-tile > .product-thumb,
   .marketplace-root .product-card-tile > .product-thumb-empty,
   .marketplace-root .product-card-tile .product-image-button .product-thumb {
-    width: 100%;
     height: auto;
     aspect-ratio: 1;
-  }
-
-  .marketplace-root .product-card-tile .product-image-button .product-thumb {
-    height: 100%;
-    object-fit: contain;
   }
 }
