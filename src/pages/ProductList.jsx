@@ -23,6 +23,7 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [banner, setBanner] = useState(null)
+  const [favoriteProductIds, setFavoriteProductIds] = useState([])
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -90,6 +91,12 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
     setCartItems((currentItems) => currentItems
       .map((item) => item.id === productId ? { ...item, quantity: quantityValue } : item)
       .filter((item) => item.quantity > 0))
+  }
+
+  function toggleFavorite(productId) {
+    setFavoriteProductIds((currentIds) => currentIds.includes(productId)
+      ? currentIds.filter((id) => id !== productId)
+      : [...currentIds, productId])
   }
 
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0)
@@ -226,6 +233,15 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
                 role={onSelectProduct ? 'button' : undefined}
                 tabIndex={onSelectProduct ? 0 : undefined}
               >
+                {customerMode && <button
+                  className={`mobile-favorite-button ${favoriteProductIds.includes(product.id) ? 'is-favorite' : ''}`}
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); toggleFavorite(product.id) }}
+                  aria-label={`${favoriteProductIds.includes(product.id) ? 'Remove' : 'Add'} ${product.productName} ${favoriteProductIds.includes(product.id) ? 'from' : 'to'} favorites`}
+                  aria-pressed={favoriteProductIds.includes(product.id)}
+                >
+                  <span aria-hidden="true">{favoriteProductIds.includes(product.id) ? '♥' : '♡'}</span>
+                </button>}
                 {product.imageUrls?.length > 0 ? (
                   <button className="product-image-button" type="button" onClick={(event) => { event.stopPropagation(); setFullScreenImage({ src: product.imageUrls[0], alt: product.productName }) }} aria-label={`View ${product.productName} image fullscreen`}>
                     <img className="product-thumb" src={product.imageUrls[0]} alt={product.productName} />
@@ -267,7 +283,7 @@ export default function ProductList({ products, loading, error, onRefresh, onBac
                     disabled={!product.approved || product.status !== 'active' || Number(product.stock) === 0}
                     onClick={(event) => { event.stopPropagation(); addToCart(product) }}
                   >
-                    Add to cart
+                    <span aria-hidden="true">🛍</span> Add to cart
                   </button>}
                 </div>
               </article>
