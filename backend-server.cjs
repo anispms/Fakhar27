@@ -55,8 +55,7 @@ const productSubcategories = {
 }
 const productCategories = Object.keys(productSubcategories)
 
-// Render's disk is ephemeral: uploaded images are lost on redeploy/restart.
-const imageDirectory = path.join(__dirname, 'uploads', 'products')
+const imageDirectory = process.env.PRODUCT_IMAGE_DIRECTORY || path.join(__dirname, 'uploads', 'products')
 fs.mkdirSync(imageDirectory, { recursive: true })
 
 const imageStorage = multer.diskStorage({

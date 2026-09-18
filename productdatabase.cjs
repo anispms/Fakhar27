@@ -17,7 +17,7 @@ const productSubcategories = {
 	Sports: ['Fitness', 'Outdoor', 'Team sports', 'Sportswear'],
 }
 const productCategories = Object.keys(productSubcategories)
-const imageDirectory = path.join(__dirname, 'uploads', 'products')
+const imageDirectory = process.env.PRODUCT_IMAGE_DIRECTORY || path.join(__dirname, 'uploads', 'products')
 fs.mkdirSync(imageDirectory, { recursive: true })
 
 const imageStorage = multer.diskStorage({
