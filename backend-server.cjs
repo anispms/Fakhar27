@@ -58,18 +58,44 @@ const productCategories = Object.keys(productSubcategories)
 const imageDirectory = process.env.PRODUCT_IMAGE_DIRECTORY || path.join(__dirname, 'uploads', 'products')
 fs.mkdirSync(imageDirectory, { recursive: true })
 
-const imageStorage = multer.diskStorage({
-  destination: imageDirectory,
-  filename: (req, file, callback) => {
-    const extension = path.extname(file.originalname).toLowerCase()
-    callback(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`)
-  },
-})
-const uploadImages = multer({ storage: imageStorage, limits: { fileSize: 10 * 1024 * 1024 } })
+const uploadImages = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
+
+function createImageFilename(file) {
+  const extension = path.extname(file.originalname).toLowerCase()
+  return `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`
+}
+
+function getImageMimeType(filename) {
+  const extension = path.extname(filename).toLowerCase()
+  const mimeTypes = {
+    '.gif': 'image/gif',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+  }
+  return mimeTypes[extension] || 'application/octet-stream'
+}
 
 app.use(express.json({ limit: '15mb' }))
 app.use(cors())
-app.use('/product-images', express.static(imageDirectory))
+app.get('/product-images/:filename', async (req, res) => {
+  try {
+    const result = await client.query(
+      'SELECT image_data, mime_type FROM public.product_image WHERE filename = $1',
+      [req.params.filename],
+    )
+    if (result.rows.length > 0) {
+      res.type(result.rows[0].mime_type || 'application/octet-stream').send(result.rows[0].image_data)
+      return
+    }
+    res.sendFile(path.join(imageDirectory, req.params.filename), (error) => {
+      if (error && !res.headersSent) res.status(error.statusCode || 404).end()
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
 
 async function startServer() {
   await client.query(`
@@ -134,6 +160,33 @@ async function startServer() {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS public.product_image (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER NOT NULL REFERENCES public.product(id) ON DELETE CASCADE,
+      filename VARCHAR(255) NOT NULL UNIQUE,
+      mime_type VARCHAR(100) NOT NULL,
+      image_data BYTEA NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  const legacyProducts = await client.query('SELECT id, images FROM public.product')
+  for (const product of legacyProducts.rows) {
+    const legacyImages = Array.isArray(product.images) ? product.images : []
+    for (const imagePath of legacyImages) {
+      if (typeof imagePath !== 'string' || !imagePath.startsWith('/product-images/')) continue
+      const filename = path.basename(imagePath)
+      const filePath = path.join(imageDirectory, filename)
+      if (!fs.existsSync(filePath)) continue
+      const imageData = fs.readFileSync(filePath)
+      await client.query(
+        `INSERT INTO public.product_image (product_id, filename, mime_type, image_data)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (filename) DO NOTHING`,
+        [product.id, filename, getImageMimeType(filename), imageData],
+      )
+    }
+  }
 
   console.log('connected')
 }
@@ -500,7 +553,12 @@ app.post('/postProduct', uploadImages.array('images', 10), async (req, res) => {
     if (!(await requireApproval(userEmail, res))) return
 
     const uploadedFiles = Array.isArray(req.files) ? req.files : []
-    const images = uploadedFiles.map((file) => `/product-images/${file.filename}`)
+    const imageRecords = uploadedFiles.map((file) => ({
+      filename: createImageFilename(file),
+      mimeType: file.mimetype,
+      data: file.buffer,
+    }))
+    const images = imageRecords.map((image) => `/product-images/${image.filename}`)
     const result = await client.query(
       `INSERT INTO public.product
         (user_email, product_name, category, subcategory, price, selling_price, description, stock, status, approved, hsn_code, images, videos)
@@ -508,6 +566,13 @@ app.post('/postProduct', uploadImages.array('images', 10), async (req, res) => {
        RETURNING *`,
       [userEmail, productName, category, subcategory, price, sellingPrice, description, stock, status, hsnCode, JSON.stringify(images), videos],
     )
+    for (const image of imageRecords) {
+      await client.query(
+        `INSERT INTO public.product_image (product_id, filename, mime_type, image_data)
+         VALUES ($1, $2, $3, $4)`,
+        [result.rows[0].id, image.filename, image.mimeType, image.data],
+      )
+    }
     res.status(201).json({ message: 'Product saved successfully', product: result.rows[0] })
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -592,7 +657,12 @@ app.put('/products/:id', uploadImages.array('images', 10), async (req, res) => {
     if (!(await requireApproval(userEmail, res))) return
 
     const uploadedFiles = Array.isArray(req.files) ? req.files : []
-    const uploadedImages = uploadedFiles.map((file) => `/product-images/${file.filename}`)
+    const imageRecords = uploadedFiles.map((file) => ({
+      filename: createImageFilename(file),
+      mimeType: file.mimetype,
+      data: file.buffer,
+    }))
+    const uploadedImages = imageRecords.map((image) => `/product-images/${image.filename}`)
     let retainedImages = []
     try {
       const parsedImages = JSON.parse(existingImages)
@@ -609,6 +679,16 @@ app.put('/products/:id', uploadImages.array('images', 10), async (req, res) => {
       [productName, category, subcategory, price, sellingPrice, description, stock, status, hsnCode, JSON.stringify(images), JSON.stringify(videos), Number(req.params.id), userEmail],
     )
     if (result.rows.length === 0) return res.status(404).json({ error: 'Product not found' })
+    if (imageRecords.length > 0) {
+      await client.query('DELETE FROM public.product_image WHERE product_id = $1', [Number(req.params.id)])
+      for (const image of imageRecords) {
+        await client.query(
+          `INSERT INTO public.product_image (product_id, filename, mime_type, image_data)
+           VALUES ($1, $2, $3, $4)`,
+          [Number(req.params.id), image.filename, image.mimeType, image.data],
+        )
+      }
+    }
     res.json({ message: 'Product updated successfully', product: result.rows[0] })
   } catch (error) {
     res.status(500).json({ error: error.message })
